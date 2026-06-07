@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Vegas Packing" />
   <title>Las Vegas Packing List</title>
-  <script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.28.1/lib/msal-browser.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
@@ -327,9 +327,18 @@
       cache: { cacheLocation: "sessionStorage", storeAuthStateInCookie: true }
     };
 
-    const msalInstance = new msal.PublicClientApplication(msalConfig);
+    let msalInstance = null;
+
+    async function getMsal() {
+      if (!msalInstance) {
+        msalInstance = new msal.PublicClientApplication(msalConfig);
+        await msalInstance.initialize();
+      }
+      return msalInstance;
+    }
 
     async function initAuth() {
+      const msalInstance = await getMsal();
       try {
         const response = await msalInstance.handleRedirectPromise();
         if (response) {
@@ -346,11 +355,13 @@
       }
     }
 
-    function signIn() {
+    async function signIn() {
+      const msalInstance = await getMsal();
       msalInstance.loginRedirect({ scopes: ["User.Read"] });
     }
 
-    function signOut() {
+    async function signOut() {
+      const msalInstance = await getMsal();
       msalInstance.logoutRedirect();
     }
 
