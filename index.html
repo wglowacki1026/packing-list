@@ -477,7 +477,8 @@
         content.appendChild(section);
       });
 
-      content.innerHTML += `
+      const footer = document.createElement('div');
+      footer.innerHTML = `
         <div class="tip" style="margin-top:36px">
           <div class="tip-label">Pro Tip</div>
           <div class="tip-text">Split your supplies — half in carry-on, half in your bag. Losing everything to a lost bag in Vegas is a bad time.</div>
@@ -485,6 +486,7 @@
         <div class="reset-wrap hidden" id="reset-wrap">
           <button class="reset-btn" onclick="resetAll()">Reset All</button>
         </div>`;
+      content.appendChild(footer);
       updateProgress();
     }
 
