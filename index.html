@@ -7,6 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Vegas Packing" />
   <title>Las Vegas Packing List</title>
+  <script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
@@ -17,6 +18,89 @@
       color: #f0e6c8;
       padding-bottom: 60px;
     }
+
+    /* Auth screen */
+    #auth-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px;
+      text-align: center;
+    }
+    .auth-title {
+      font-size: 11px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: #c9a84c;
+      margin-bottom: 12px;
+    }
+    .auth-heading {
+      font-size: clamp(24px, 5vw, 36px);
+      font-weight: 400;
+      color: #f0e6c8;
+      margin-bottom: 8px;
+    }
+    .auth-sub {
+      font-size: 13px;
+      color: rgba(240,230,200,0.45);
+      margin-bottom: 40px;
+      letter-spacing: 0.05em;
+    }
+    .sign-in-btn {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #0078d4;
+      color: #fff;
+      border: none;
+      padding: 14px 28px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: inherit;
+      cursor: pointer;
+      letter-spacing: 0.03em;
+      transition: background 0.2s;
+    }
+    .sign-in-btn:hover { background: #106ebe; }
+    .sign-in-btn:active { background: #005a9e; }
+    .sign-in-btn svg { flex-shrink: 0; }
+    .auth-error {
+      margin-top: 20px;
+      font-size: 12px;
+      color: #ff6b6b;
+      display: none;
+    }
+
+    /* User bar */
+    #user-bar {
+      display: none;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      padding: 10px 16px;
+      background: rgba(255,255,255,0.03);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      font-size: 12px;
+      color: rgba(240,230,200,0.45);
+    }
+    #user-name { color: rgba(201,168,76,0.8); }
+    .sign-out-btn {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.13);
+      color: rgba(255,255,255,0.3);
+      padding: 4px 10px;
+      border-radius: 3px;
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    /* Main app - hidden until authed */
+    #app { display: none; }
 
     /* Header */
     .header {
@@ -56,10 +140,7 @@
     }
 
     /* Progress */
-    .progress-wrap {
-      max-width: 320px;
-      margin: 28px auto 0;
-    }
+    .progress-wrap { max-width: 320px; margin: 28px auto 0; }
     .progress-label {
       display: flex;
       justify-content: space-between;
@@ -83,11 +164,7 @@
     }
 
     /* Content */
-    .content {
-      max-width: 560px;
-      margin: 0 auto;
-      padding: 0 16px;
-    }
+    .content { max-width: 560px; margin: 0 auto; padding: 0 16px; }
 
     /* Section */
     .section { margin-top: 28px; }
@@ -133,7 +210,6 @@
       background: rgba(201,168,76,0.05);
       border-color: rgba(201,168,76,0.13);
     }
-
     .checkbox {
       width: 20px;
       height: 20px;
@@ -146,22 +222,14 @@
       flex-shrink: 0;
       transition: background 0.2s, border-color 0.2s;
     }
-    .item.checked .checkbox {
-      background: #c9a84c;
-      border-color: #c9a84c;
-    }
-    .checkmark {
-      display: none;
-      width: 10px;
-      height: 8px;
-    }
+    .item.checked .checkbox { background: #c9a84c; border-color: #c9a84c; }
+    .checkmark { display: none; width: 10px; height: 8px; }
     .item.checked .checkmark { display: block; }
-
     .item-label {
       font-size: 14px;
       color: rgba(240,230,200,0.8);
       line-height: 1.4;
-      transition: color 0.2s, text-decoration 0.2s;
+      transition: color 0.2s;
     }
     .item.checked .item-label {
       color: rgba(201,168,76,0.5);
@@ -184,11 +252,7 @@
       color: #c9a84c;
       margin-bottom: 6px;
     }
-    .tip-text {
-      font-size: 13px;
-      color: rgba(240,230,200,0.65);
-      line-height: 1.6;
-    }
+    .tip-text { font-size: 13px; color: rgba(240,230,200,0.65); line-height: 1.6; }
 
     /* Reset */
     .reset-wrap { text-align: center; margin-top: 32px; }
@@ -203,7 +267,6 @@
       text-transform: uppercase;
       cursor: pointer;
       font-family: inherit;
-      transition: border-color 0.2s, color 0.2s;
     }
     .reset-btn:active { opacity: 0.6; }
     .hidden { display: none; }
@@ -211,24 +274,95 @@
 </head>
 <body>
 
-  <div class="header">
-    <div class="header-sub">Las Vegas · 4 Days</div>
-    <h1>Packing List</h1>
-    <div class="header-tag">Diabetic Travel Edition</div>
-    <div class="progress-wrap">
-      <div class="progress-label">
-        <span id="prog-text">0 of 33 packed</span>
-        <span id="prog-pct">0%</span>
-      </div>
-      <div class="progress-track">
-        <div class="progress-bar" id="prog-bar"></div>
-      </div>
-    </div>
+  <!-- Auth screen -->
+  <div id="auth-screen">
+    <div class="auth-title">Las Vegas · 4 Days</div>
+    <div class="auth-heading">Packing List</div>
+    <div class="auth-sub">Diabetic Travel Edition</div>
+    <button class="sign-in-btn" onclick="signIn()">
+      <svg width="20" height="20" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
+        <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
+        <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
+        <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+      </svg>
+      Sign in with Microsoft
+    </button>
+    <div class="auth-error" id="auth-error">Sign-in failed. Please try again.</div>
   </div>
 
-  <div class="content" id="list-content"></div>
+  <!-- Authenticated app -->
+  <div id="app">
+    <div id="user-bar">
+      <span>Signed in as <span id="user-name"></span></span>
+      <button class="sign-out-btn" onclick="signOut()">Sign out</button>
+    </div>
+
+    <div class="header">
+      <div class="header-sub">Las Vegas · 4 Days</div>
+      <h1>Packing List</h1>
+      <div class="header-tag">Diabetic Travel Edition</div>
+      <div class="progress-wrap">
+        <div class="progress-label">
+          <span id="prog-text">0 of 33 packed</span>
+          <span id="prog-pct">0%</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-bar" id="prog-bar"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="content" id="list-content"></div>
+  </div>
 
   <script>
+    // MSAL config
+    const msalConfig = {
+      auth: {
+        clientId: "62ff6f77-96f7-45f3-a338-1fad365ddd95",
+        authority: "https://login.microsoftonline.com/14b646f9-a0cf-44a6-8ac1-6d25082a04c5",
+        redirectUri: window.location.origin + window.location.pathname,
+      },
+      cache: { cacheLocation: "sessionStorage", storeAuthStateInCookie: true }
+    };
+
+    const msalInstance = new msal.PublicClientApplication(msalConfig);
+
+    async function initAuth() {
+      try {
+        const response = await msalInstance.handleRedirectPromise();
+        if (response) {
+          showApp(response.account);
+          return;
+        }
+        const accounts = msalInstance.getAllAccounts();
+        if (accounts.length > 0) {
+          showApp(accounts[0]);
+        }
+        // else: stay on auth screen
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function signIn() {
+      msalInstance.loginRedirect({ scopes: ["User.Read"] });
+    }
+
+    function signOut() {
+      msalInstance.logoutRedirect();
+    }
+
+    function showApp(account) {
+      document.getElementById('auth-screen').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      document.getElementById('user-bar').style.display = 'flex';
+      document.getElementById('user-name').textContent = account.name || account.username;
+      buildList();
+    }
+
+    // Packing list data
     const sections = [
       { title: "Diabetes Supplies", emoji: "💉", items: [
         "Insulin + backup supply",
@@ -255,22 +389,16 @@
         "Socks, underwear, pajamas",
       ]},
       { title: "Toiletries", emoji: "🧴", items: [
-        "Sunscreen",
-        "Lip balm",
+        "Sunscreen", "Lip balm",
         "Deodorant, shampoo, toothbrush/paste, razors",
         "Blister pads or moleskin",
       ]},
       { title: "Electronics", emoji: "🔌", items: [
-        "Phone + charger",
-        "Portable battery pack",
-        "Earbuds",
+        "Phone + charger", "Portable battery pack", "Earbuds",
       ]},
       { title: "Documents & Wallet", emoji: "📄", items: [
-        "ID or passport",
-        "Insurance cards",
-        "Hotel confirmation",
-        "Cash + cards",
-        "TSA note for medical devices",
+        "ID or passport", "Insurance cards", "Hotel confirmation",
+        "Cash + cards", "TSA note for medical devices",
       ]},
       { title: "Food & Snacks", emoji: "🥜", items: [
         "Protein bars or nuts",
@@ -290,7 +418,8 @@
       document.getElementById('prog-text').textContent = `${checked} of ${totalItems} packed`;
       document.getElementById('prog-pct').textContent = `${pct}%`;
       document.getElementById('prog-bar').style.width = `${pct}%`;
-      document.getElementById('reset-wrap').classList.toggle('hidden', checked === 0);
+      const rw = document.getElementById('reset-wrap');
+      if (rw) rw.classList.toggle('hidden', checked === 0);
     }
 
     function updateSection(sTitle, items) {
@@ -308,52 +437,45 @@
       updateProgress();
     }
 
-    // Build DOM
-    const content = document.getElementById('list-content');
-
-    sections.forEach(({ title, emoji, items }) => {
-      const section = document.createElement('div');
-      section.className = 'section';
-
-      section.innerHTML = `
-        <div class="section-header">
-          <span class="section-emoji">${emoji}</span>
-          <span class="section-title" id="title-${title}">${title}</span>
-          <span class="section-count" id="count-${title}">0/${items.length}</span>
-        </div>
-      `;
-
-      items.forEach(item => {
-        const key = getKey(title, item);
-        state[key] = false;
-
-        const el = document.createElement('div');
-        el.className = 'item';
-        el.innerHTML = `
-          <div class="checkbox">
-            <svg class="checkmark" viewBox="0 0 10 8" fill="none">
-              <path d="M1 4L3.5 6.5L9 1" stroke="#0a0a0f" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-          <span class="item-label">${item}</span>
-        `;
-        el.addEventListener('click', () => toggleItem(key, title, items, el));
-        section.appendChild(el);
+    function buildList() {
+      const content = document.getElementById('list-content');
+      sections.forEach(({ title, emoji, items }) => {
+        const section = document.createElement('div');
+        section.className = 'section';
+        section.innerHTML = `
+          <div class="section-header">
+            <span class="section-emoji">${emoji}</span>
+            <span class="section-title" id="title-${title}">${title}</span>
+            <span class="section-count" id="count-${title}">0/${items.length}</span>
+          </div>`;
+        items.forEach(item => {
+          const key = getKey(title, item);
+          state[key] = false;
+          const el = document.createElement('div');
+          el.className = 'item';
+          el.innerHTML = `
+            <div class="checkbox">
+              <svg class="checkmark" viewBox="0 0 10 8" fill="none">
+                <path d="M1 4L3.5 6.5L9 1" stroke="#0a0a0f" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <span class="item-label">${item}</span>`;
+          el.addEventListener('click', () => toggleItem(key, title, items, el));
+          section.appendChild(el);
+        });
+        content.appendChild(section);
       });
 
-      content.appendChild(section);
-    });
-
-    // Tip
-    content.innerHTML += `
-      <div class="tip" style="margin-top:36px">
-        <div class="tip-label">Pro Tip</div>
-        <div class="tip-text">Split your supplies — half in carry-on, half in your bag. Losing everything to a lost bag in Vegas is a bad time!</div>
-      </div>
-      <div class="reset-wrap hidden" id="reset-wrap">
-        <button class="reset-btn" onclick="resetAll()">Reset All</button>
-      </div>
-    `;
+      content.innerHTML += `
+        <div class="tip" style="margin-top:36px">
+          <div class="tip-label">Pro Tip</div>
+          <div class="tip-text">Split your supplies — half in carry-on, half in your bag. Losing everything to a lost bag in Vegas is a bad time.</div>
+        </div>
+        <div class="reset-wrap hidden" id="reset-wrap">
+          <button class="reset-btn" onclick="resetAll()">Reset All</button>
+        </div>`;
+      updateProgress();
+    }
 
     function resetAll() {
       Object.keys(state).forEach(k => state[k] = false);
@@ -362,7 +484,7 @@
       updateProgress();
     }
 
-    updateProgress();
+    initAuth();
   </script>
 </body>
 </html>
