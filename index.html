@@ -371,6 +371,7 @@
       document.getElementById('user-bar').style.display = 'flex';
       document.getElementById('user-name').textContent = account.name || account.username;
       buildList();
+      loadState();
     }
 
     // Packing list data
@@ -493,6 +494,7 @@
       el.classList.toggle('checked', state[key]);
       updateSection(sTitle, items);
       updateProgress();
+      saveState();
     }
 
     function buildList() {
@@ -518,6 +520,7 @@
               </svg>
             </div>
             <span class="item-label">${item}</span>`;
+          el.dataset.key = key;
           el.addEventListener('click', () => toggleItem(key, title, items, el));
           section.appendChild(el);
         });
@@ -542,6 +545,30 @@
       document.querySelectorAll('.item').forEach(el => el.classList.remove('checked'));
       sections.forEach(({ title, items }) => updateSection(title, items));
       updateProgress();
+      try { localStorage.removeItem('packingState'); } catch(e) {}
+    }
+
+    function saveState() {
+      try { localStorage.setItem('packingState', JSON.stringify(state)); } catch(e) {}
+    }
+
+    function loadState() {
+      try {
+        const saved = localStorage.getItem('packingState');
+        if (!saved) return;
+        const parsed = JSON.parse(saved);
+        Object.keys(parsed).forEach(key => {
+          if (parsed[key]) {
+            state[key] = true;
+            const items = document.querySelectorAll('.item');
+            items.forEach(el => {
+              if (el.dataset.key === key) el.classList.add('checked');
+            });
+          }
+        });
+        sections.forEach(({ title, items }) => updateSection(title, items));
+        updateProgress();
+      } catch(e) {}
     }
 
     initAuth();
